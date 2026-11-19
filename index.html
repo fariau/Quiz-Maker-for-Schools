@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>QuizSpark · AI Quiz Maker for Schools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg1: #f3f0ff;
+            --bg2: #e8f3ff;
+            --card: rgba(255, 255, 255, .78);
+            --soft: rgba(110, 100, 200, .09);
+            --border: rgba(120, 110, 210, .20);
+            --text: #161a2e;
+            --muted: #667089;
+            --input: #fff;
+            --a1: #6d5efc;
+            --a2: #a855f7;
+            --a3: #ec4899;
+            --ok: #16a34a;
+            --okbg: rgba(22, 163, 74, .12);
+            --bad: #dc2626;
+            --badbg: rgba(220, 38, 38, .10);
+            --shadow: 0 10px 40px -12px rgba(90, 70, 200, .25);
+            color-scheme: light;
+        }
+
+        @media (prefers-color-scheme:dark) {
+            :root {
+                --bg1: #0b0d1a;
+                --bg2: #10142a;
+                --card: rgba(24, 28, 52, .72);
+                --soft: rgba(140, 150, 255, .09);
+                --border: rgba(140, 150, 255, .18);
+                --text: #eef0ff;
+                --muted: #9aa3c7;
+                --input: rgba(255, 255, 255, .06);
+                --ok: #4ade80;
+                --okbg: rgba(74, 222, 128, .14);
+                --bad: #f87171;
+                --badbg: rgba(248, 113, 113, .14);
+                --shadow: 0 10px 40px -12px rgba(0, 0, 0, .6);
+                color-scheme: dark;
+            }
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Nastaliq Urdu", sans-serif;
+            background: linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
+            line-height: 1.55;
+            overflow-x: hidden
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            z-index: -1;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: .45;
+            pointer-events: none
+        }
+
+        body::before {
+            width: 420px;
+            height: 420px;
+            background: var(--a1);
+            top: -120px;
+            left: -120px
+        }
+
+        body::after {
+            width: 380px;
+            height: 380px;
+            background: var(--a3);
+            bottom: -140px;
+            right: -120px;
+            opacity: .28
+        }
+
+        .wrap {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 28px 16px 64px
+        }
+
+        /* hero */
+        .hero {
+            text-align: center;
+            margin-bottom: 22px
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: var(--soft);
+            border: 1px solid var(--border);
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--muted)
+        }
+
+        .pill i {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--a1), var(--a3));
+            display: inline-block
+        }
+
+        h1 {
+            font-size: clamp(2rem, 6vw, 2.9rem);
+            line-height: 1.1;
+            margin: 14px 0 8px;
+            font-weight: 800;
+            letter-spacing: -.03em
+        }
+
+        h1 span {
+            background: linear-gradient(120deg, var(--a1), var(--a2) 55%, var(--a3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent
+        }
+
+        .sub {
+            color: var(--muted);
+            margin: 0 auto;
+            max-width: 520px
+        }
+
+        /* cards */
+        .card {
+            background: var(--card);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 22px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+        .grid .full {
+            grid-column: 1/-1
+        }
+
+        label {
+            display: block;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 0 0 7px
+        }
+
+        select,
+        input[type=text] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: var(--input);
+            color: var(--text);
+            font: inherit;
+            font-size: .95rem;
+            outline: none;
+            transition: .2s
+        }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 38px;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a8fb0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center
+        }
+
+        select option {
+            color: #161a2e;
+            background: #fff
+        }
+
+        select:focus,
+        input[type=text]:focus {
+            border-color: var(--a1);
+            box-shadow: 0 0 0 4px rgba(109, 94, 252, .18)
+        }
+
+        input[type=text] {
+            margin-top: 8px
+        }
+
+        .hide {
+            display: none !important
+        }
+
+        /* segmented */
+        .seg {
+            display: flex;
+            gap: 4px;
+            background: var(--soft);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--border)
+        }
+
+        .seg button {
+            flex: 1;
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            padding: 9px 6px;
+            border-radius: 10px;
+            font: inherit;
+            font-weight: 600;
+            font-size: .88rem;
+            cursor: pointer;
+            transition: .2s
+        }
+
+        .seg button.on {
+            background: linear-gradient(120deg, var(--a1), var(--a2));
+            color: #fff;
+            box-shadow: 0 6px 16px -6px rgba(109, 94, 252, .7)
+        }
+
+        /* buttons */
+        .btn {
+            font: inherit;
+            cursor: pointer;
+            border-radius: 13px;
+            border: 1px solid var(--border);
+            background: var(--input);
+            color: var(--text);
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: .9rem;
+            transition: .2s
+        }
+
+        .btn:hover {
+            transform: translateY(-1px)
+        }
+
+        .go {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            border: 0;
+            border-radius: 16px;
+            font: inherit;
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            background: linear-gradient(120deg, var(--a1), var(--a2) 55%, var(--a3));
+            box-shadow: 0 14px 30px -10px rgba(168, 85, 247, .65);
+            transition: .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px
+        }
+
+        .go:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 34px -10px rgba(168, 85, 247, .75)
+        }
+
+        .go:disabled {
+            opacity: .8;
+            cursor: wait;
+            transform: none
+        }
+
+        .spin {
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, .4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: sp .7s linear infinite
+        }
+
+        @keyframes sp {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .err {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 13px;
+            background: var(--badbg);
+            color: var(--bad);
+            font-size: .9rem;
+            font-weight: 500
+        }
+
+        /* results */
+        .head-title {
+            font-weight: 800;
+            font-size: 1.15rem;
+            margin: 0 0 4px
+        }
+
+        .chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 14px
+        }
+
+        .chip {
+            padding: 4px 11px;
+            border-radius: 999px;
+            background: var(--soft);
+            border: 1px solid var(--border);
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--muted)
+        }
+
+        .stats {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 10px
+        }
+
+        .big {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(120deg, var(--a1), var(--a3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent
+        }
+
+        .progress {
+            height: 8px;
+            border-radius: 99px;
+            background: var(--soft);
+            overflow: hidden;
+            margin-bottom: 14px
+        }
+
+        .progress span {
+            display: block;
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, var(--a1), var(--a3));
+            transition: width .4s
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .done {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 13px;
+            background: var(--okbg);
+            color: var(--ok);
+            font-weight: 700
+        }
+
+        .qcard {
+            animation: rise .35s both
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .qnum {
+            display: inline-block;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            color: var(--a1);
+            margin-bottom: 6px
+        }
+
+        .q {
+            font-weight: 700;
+            font-size: 1.04rem;
+            margin: 0 0 12px
+        }
+
+        .opt {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            text-align: left;
+            padding: 11px 13px;
+            margin: 8px 0;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--input);
+            color: var(--text);
+            font: inherit;
+            font-size: .94rem;
+            cursor: pointer;
+            transition: .18s
+        }
+
+        .opt:hover:not(:disabled) {
+            border-color: var(--a1);
+            transform: translateX(3px)
+        }
+
+        .opt:disabled {
+            cursor: default
+        }
+
+        .badge {
+            flex: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+            font-size: .8rem;
+            background: var(--soft);
+            color: var(--muted)
+        }
+
+        .opt.ok {
+            border-color: var(--ok);
+            background: var(--okbg)
+        }
+
+        .opt.ok .badge {
+            background: var(--ok);
+            color: #fff
+        }
+
+        .opt.bad {
+            border-color: var(--bad);
+            background: var(--badbg)
+        }
+
+        .opt.bad .badge {
+            background: var(--bad);
+            color: #fff
+        }
+
+        .opt .mark {
+            margin-left: auto;
+            font-weight: 800
+        }
+
+        .exp {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: var(--soft);
+            font-size: .88rem;
+            color: var(--muted)
+        }
+
+        [dir=rtl] {
+            text-align: right
+        }
+
+        [dir=rtl] .opt {
+            text-align: right;
+            flex-direction: row-reverse
+        }
+
+        [dir=rtl] .opt .mark {
+            margin-left: 0;
+            margin-right: auto
+        }
+
+        /* skeleton */
+        .sk {
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--soft), rgba(150, 150, 255, .18), var(--soft));
+            background-size: 200% 100%;
+            animation: sh 1.2s infinite
+        }
+
+        @keyframes sh {
+            to {
+                background-position: -200% 0
+            }
+        }
+
+        .loadmsg {
+            text-align: center;
+            font-weight: 600;
+            color: var(--muted);
+            margin: 4px 0 14px
+        }
+
+        @media (max-width:520px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+
+            .card {
+                padding: 18px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="hero">
+            <span class="pill"><i></i> AI-powered · for teachers &amp; students</span>
+            <h1>Make a quiz in <span>seconds</span></h1>
+            <p class="sub">Pick a class, subject and topic, or type your own, and get ready-to-use MCQs with an answer
+                key.</p>
+        </div>
+
+        <div class="card" id="form">
+            <div class="grid">
+                <div>
+                    <label for="cls">Class</label>
+                    <select id="cls"></select>
+                    <input type="text" id="clsOther" class="hide" placeholder="Type your class">
+                </div>
+                <div>
+                    <label for="subj">Subject</label>
+                    <select id="subj"></select>
+                    <input type="text" id="subjOther" class="hide" placeholder="Type your subject">
+                </div>
+                <div class="full">
+                    <label for="topic">Topic</label>
+                    <select id="topic"></select>
+                    <input type="text" id="topicOther" class="hide" placeholder="Type your topic">
+                </div>
+                <div>
+                    <label for="num">Questions</label>
+                    <select id="num">
+                        <option>5</option>
+                        <option selected>10</option>
+                        <option>15</option>
+                        <option>20</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Difficulty</label>
+                    <div class="seg" data-key="diff">
+                        <button data-v="Easy">Easy</button><button data-v="Medium" class="on">Medium</button><button
+                            data-v="Hard">Hard</button>
+                    </div>
+                </div>
+                <div class="full">
+                    <label>Language</label>
+                    <div class="seg" data-key="lang">
+                        <button data-v="English" class="on">English</button><button data-v="Urdu">اردو</button><button
+                            data-v="Roman Urdu">Roman Urdu</button>
+                    </div>
+                </div>
+            </div>
+            <button class="go" id="go">Generate quiz</button>
+            <div class="err hide" id="err"></div>
+        </div>
+
+        <div id="quiz" class="hide"></div>
+    </div>
+
+    <script>
+        // ===== PUT YOUR GEMINI API KEY HERE =====
+        const GEMINI_API_KEY = "PASTE_YOUR_KEY_HERE";
+        const MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"]; 
+        // ========================================
+
+        const $ = id => document.getElementById(id);
+        const OTHER = '__other';
+
+        /* ---------- Curriculum data ---------- */
+        const CLASSES = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11 (1st Year)', 'Class 12 (2nd Year)'];
+        const SUBJECTS = {
+            primary: ['English', 'Urdu', 'Math', 'Science', 'Islamiyat', 'Social Studies', 'General Knowledge', 'Computer'],
+            middle: ['English', 'Urdu', 'Math', 'General Science', 'Islamiyat', 'Social Studies', 'Computer'],
+            secondary: ['English', 'Urdu', 'Math', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Pak Studies', 'Islamiyat'],
+            college: ['English', 'Urdu', 'Math', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Pak Studies', 'Islamiyat']
+        };
+        const TOPICS = {
+            'Math|primary': ['Addition & Subtraction', 'Multiplication Tables', 'Division', 'Fractions', 'Shapes & Geometry', 'Measurement', 'Time & Money', 'Patterns'],
+            'Math|middle': ['Integers', 'Fractions & Decimals', 'Ratio & Proportion', 'Percentages', 'Algebraic Expressions', 'Linear Equations', 'Angles & Triangles', 'Area & Perimeter', 'Data Handling'],
+            'Math|secondary': ['Quadratic Equations', 'Sets & Functions', 'Matrices', 'Trigonometry', 'Coordinate Geometry', 'Logarithms', 'Circles', 'Statistics', 'Probability'],
+            'Math|college': ['Functions & Limits', 'Differentiation', 'Integration', 'Complex Numbers', 'Vectors', 'Conic Sections', 'Sequences & Series'],
+            'Science|primary': ['Plants', 'Animals', 'Human Body', 'Water Cycle', 'Weather', 'Solar System', 'Magnets', 'Food & Nutrition'],
+            'General Science|middle': ['Cells', 'Photosynthesis', 'Digestive System', 'Force & Motion', 'Light', 'Sound', 'Acids & Bases', 'Elements & Compounds', 'Heat', 'Environment'],
+            'Physics|secondary': ['Physical Quantities & Units', 'Kinematics', 'Dynamics', 'Work & Energy', 'Gravitation', 'Heat & Thermodynamics', 'Waves', 'Electricity', 'Magnetism', 'Atomic Physics'],
+            'Physics|college': ['Vectors & Equilibrium', 'Motion & Force', 'Work, Power & Energy', 'Circular Motion', 'Oscillations', 'Electrostatics', 'Current Electricity', 'Electromagnetism', 'Modern Physics'],
+            'Chemistry|secondary': ['Atomic Structure', 'Periodic Table', 'Chemical Bonding', 'Acids, Bases & Salts', 'Organic Chemistry', 'Electrochemistry', 'Metals & Non-metals', 'Chemical Equilibrium', 'Stoichiometry'],
+            'Chemistry|college': ['Atomic Structure', 'Chemical Bonding', 'Thermochemistry', 'Chemical Equilibrium', 'Reaction Kinetics', 'Electrochemistry', 'Hydrocarbons', 'Alcohols & Phenols'],
+            'Biology|secondary': ['Cell Biology', 'Enzymes', 'Nutrition', 'Respiration', 'Transport', 'Reproduction', 'Genetics & Inheritance', 'Coordination & Control', 'Ecology'],
+            'Biology|college': ['Biological Molecules', 'Enzymes', 'Bioenergetics', 'Cell Cycle', 'Genetics', 'Evolution', 'Homeostasis', 'Immunity'],
+            'English|primary': ['Nouns', 'Verbs', 'Adjectives', 'Pronouns', 'Sentences', 'Opposites & Synonyms', 'Spelling', 'Comprehension'],
+            'English|middle': ['Parts of Speech', 'Tenses', 'Active & Passive Voice', 'Direct & Indirect Speech', 'Prepositions', 'Punctuation', 'Comprehension', 'Letter & Essay Writing'],
+            'English|secondary': ['Tenses', 'Voice', 'Narration', 'Conditional Sentences', 'Idioms & Phrases', 'Comprehension', 'Essay Writing', 'Poetry'],
+            'English|college': ['Tenses & Grammar', 'Vocabulary', 'Comprehension', 'Essay & Letter Writing', 'Poetry', 'Short Stories'],
+            'Urdu': ['Ism (Noun)', 'Fail (Verb)', 'Sifat (Adjective)', 'Muzakkar & Muannas', 'Wahid & Jama', 'Zid (Opposites)', 'Muhavare', 'Mazmoon Nigari', 'Poems & Shayari'],
+            'Islamiyat': ['Pillars of Islam', 'Articles of Faith', 'Life of the Prophet (PBUH)', 'Prophets of Islam', 'Quran & Hadith', 'Islamic Manners', 'Companions of the Prophet', 'Salah & Wudu'],
+            'Social Studies': ['Our Community', 'Provinces of Pakistan', 'Maps & Directions', 'Continents & Oceans', 'Pakistan Movement', 'Natural Resources', 'Climate of Pakistan'],
+            'General Knowledge': ['Countries & Capitals', 'Famous Personalities', 'Sports', 'Inventions', 'Animals & Birds', 'Facts about Pakistan'],
+            'Pak Studies': ['Ideology of Pakistan', 'Pakistan Movement', 'Constitution of Pakistan', 'Geography of Pakistan', 'Resources & Economy', 'Foreign Policy', 'Provinces & Culture'],
+            'Computer': ['Computer Basics', 'Input & Output Devices', 'Operating Systems', 'MS Office', 'Internet & Email', 'Cyber Safety'],
+            'Computer Science': ['Computer Basics', 'Programming Basics', 'Algorithms & Flowcharts', 'Databases', 'Networks', 'Operating Systems', 'Cyber Security']
+        };
+        function groupOf(c) { const m = (c || '').match(/\d+/); const n = m ? +m[0] : 0; return n <= 5 ? 'primary' : n <= 8 ? 'middle' : n <= 10 ? 'secondary' : 'college'; }
+        const ALLSUBJ = [...new Set(Object.values(SUBJECTS).flat())];
+
+        /* ---------- Dropdown helpers ---------- */
+        function fill(sel, items, placeholder) {
+            sel.innerHTML = `<option value="">${placeholder}</option>` +
+                items.map(i => `<option value="${i.replace(/"/g, '&quot;')}">${i}</option>`).join('') +
+                `<option value="${OTHER}">Other (type your own)…</option>`;
+        }
+        function toggleOther(sel) { $(sel.id + 'Other').classList.toggle('hide', sel.value !== OTHER); }
+        function val(id) { const s = $(id); return s.value === OTHER ? $(id + 'Other').value.trim() : s.value; }
+
+        fill($('cls'), CLASSES, 'Select class');
+        fill($('subj'), [], 'Select class first');
+        fill($('topic'), [], 'Select subject first');
+
+        $('cls').onchange = () => {
+            toggleOther($('cls'));
+            const g = $('cls').value === OTHER ? null : groupOf($('cls').value);
+            fill($('subj'), g ? SUBJECTS[g] : ALLSUBJ, 'Select subject');
+            toggleOther($('subj'));
+            fill($('topic'), [], 'Select subject first'); toggleOther($('topic'));
+        };
+        $('subj').onchange = () => {
+            toggleOther($('subj'));
+            const c = $('cls').value, s = $('subj').value;
+            const list = (c && c !== OTHER && s && s !== OTHER) ? (TOPICS[s + '|' + groupOf(c)] || TOPICS[s] || []) : [];
+            fill($('topic'), list, 'Select topic'); toggleOther($('topic'));
+        };
+        $('topic').onchange = () => toggleOther($('topic'));
+
+        /* ---------- Segmented controls ---------- */
+        const state = { diff: 'Medium', lang: 'English' };
+        document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+            const b = e.target.closest('button'); if (!b) return;
+            seg.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+            b.classList.add('on'); state[seg.dataset.key] = b.dataset.v;
+        }));
+
+        /* ---------- Quiz state ---------- */
+        let qs = [], answers = [], showKey = false, meta = {};
+        function esc(s) { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+        function showErr(m) { const e = $('err'); e.textContent = m; e.classList.remove('hide'); }
+
+        let loadTimer = null;
+        function showLoading() {
+            const msgs = ['Reading your topic…', 'Writing questions…', 'Mixing up the options…', 'Adding explanations…', 'Almost ready…'];
+            let i = 0;
+            const q = $('quiz'); q.classList.remove('hide');
+            q.innerHTML = `<div class="loadmsg" id="lm">${msgs[0]}</div>` + [1, 2, 3].map(() =>
+                `<div class="card"><div class="sk" style="height:14px;width:30%;margin-bottom:12px"></div><div class="sk" style="height:18px;width:85%;margin-bottom:16px"></div>
+     <div class="sk" style="height:42px;margin-bottom:8px"></div><div class="sk" style="height:42px;margin-bottom:8px"></div><div class="sk" style="height:42px"></div></div>`).join('');
+            loadTimer = setInterval(() => { i = (i + 1) % msgs.length; const el = $('lm'); if (el) el.textContent = msgs[i]; }, 1800);
+            q.scrollIntoView({ behavior: 'smooth' });
+        }
+        function stopLoading() { clearInterval(loadTimer); }
+
+        /* ---------- Gemini call (tries models in order) ---------- */
+        async function generate(prompt, schema) {
+            let lastErr = '';
+            for (const model of MODELS) {
+                const gen = { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.6 };
+                if (model.startsWith('gemini-2.5')) gen.thinkingConfig = { thinkingBudget: 0 }; // no "thinking" = much faster
+                const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: gen })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    try { return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'); } catch (_) { lastErr = 'Bad response format'; continue; }
+                }
+                let msg = ''; try { msg = (await resp.json()).error.message; } catch (_) { }
+                console.error('Gemini error', model, resp.status, msg);
+                lastErr = 'Error ' + resp.status + (msg ? ': ' + msg : '');
+                if (resp.status === 403 || /API key/i.test(msg)) break; // key problem, other models will not help
+            }
+            throw new Error(lastErr || 'No response from AI.');
+        }
+
+        /* ---------- Generate ---------- */
+        $('go').onclick = async () => {
+            $('err').classList.add('hide');
+            const cls = val('cls'), subj = val('subj'), topic = val('topic');
+            if (!cls || !subj || !topic) { showErr('Please choose or type a class, subject and topic.'); return; }
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'PASTE_YOUR_KEY_HERE') { showErr('Add your Gemini API key at the top of the script in this file.'); return; }
+            const n = $('num').value, diff = state.diff, lang = state.lang;
+            meta = { cls, subj, topic, lang, diff };
+            const btn = $('go'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Generating…';
+            showLoading();
+            try {
+                const schema = { type: 'ARRAY', items: { type: 'OBJECT', properties: { q: { type: 'STRING' }, options: { type: 'ARRAY', items: { type: 'STRING' } }, answer: { type: 'INTEGER' }, explanation: { type: 'STRING' } }, required: ['q', 'options', 'answer', 'explanation'] } };
+                // Split into batches of up to 5 questions and run them in parallel (much faster)
+                const total = +n, parts = Math.ceil(total / 5), base = Math.floor(total / parts), extra = total % parts;
+                const jobs = [];
+                for (let p = 0; p < parts; p++) {
+                    const count = base + (p < extra ? 1 : 0);
+                    const split = parts > 1 ? ` This is part ${p + 1} of ${parts}: cover different sub-areas of the topic than the other parts (part ${p + 1} should focus on ${p === 0 ? 'the basic ideas and definitions' : p === parts - 1 ? 'application and problem-solving' : 'key concepts and examples'}).` : '';
+                    const prompt = `Create ${count} multiple-choice questions for ${cls}, subject ${subj}, topic "${topic}". Difficulty: ${diff}. Language: ${lang} (for Roman Urdu, write Urdu in English letters). Age-appropriate and factually correct. Exactly 4 options and exactly one correct answer; spread correct positions. Keep each explanation under 12 words.${split}`;
+                    jobs.push(generate(prompt, schema));
+                }
+                const results = await Promise.all(jobs);
+                const seen = new Set();
+                qs = results.flat().filter(x => x && x.q && Array.isArray(x.options) && x.options.length >= 2 && Number.isInteger(x.answer) && x.answer >= 0 && x.answer < x.options.length)
+                    .filter(x => { const k = x.q.trim().toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+                if (!qs.length) throw new Error('Could not create the quiz. Please try again.');
+                answers = new Array(qs.length).fill(null); showKey = false;
+                stopLoading(); render(); $('quiz').scrollIntoView({ behavior: 'smooth' });
+            } catch (e) {
+                stopLoading(); $('quiz').classList.add('hide');
+                showErr(e.message || 'Could not create the quiz. Please try again.');
+            } finally { btn.disabled = false; btn.textContent = 'Generate quiz'; }
+        };
+
+        /* ---------- Render ---------- */
+        function render() {
+            const q = $('quiz'); q.classList.remove('hide');
+            const rtl = meta.lang === 'Urdu';
+            const done = answers.filter(a => a !== null).length;
+            const score = answers.reduce((s, a, i) => s + (a === qs[i].answer ? 1 : 0), 0);
+            const finished = done === qs.length;
+            let h = `<div class="card">
+    <p class="head-title">${esc(meta.topic)}</p>
+    <div class="chips"><span class="chip">${esc(meta.cls)}</span><span class="chip">${esc(meta.subj)}</span><span class="chip">${esc(meta.diff)}</span></div>
+    <div class="stats"><span class="big">${score}/${qs.length}</span><span style="color:var(--muted);font-weight:600">${done} of ${qs.length} answered</span></div>
+    <div class="progress"><span style="width:${done / qs.length * 100}%"></span></div>
+    <div class="actions"><button class="btn" id="key">${showKey ? 'Hide answer key' : 'Show answer key'}</button><button class="btn" id="reset">Retry</button><button class="btn" id="new">New quiz</button></div>
+    ${finished ? `<div class="done">Quiz complete! You scored ${Math.round(score / qs.length * 100)}%.</div>` : ''}
+  </div>`;
+            qs.forEach((x, i) => {
+                const a = answers[i], reveal = a !== null || showKey;
+                h += `<div class="card qcard" ${rtl ? 'dir="rtl"' : ''} style="animation-delay:${Math.min(i, 8) * 40}ms"><span class="qnum">QUESTION ${i + 1}</span><p class="q">${esc(x.q)}</p>`;
+                x.options.forEach((o, j) => {
+                    let c = 'opt', mark = ''; if (reveal && j === x.answer) { c += ' ok'; mark = '✓'; } else if (a === j) { c += ' bad'; mark = '✗'; }
+                    h += `<button class="${c}" data-q="${i}" data-o="${j}" ${reveal ? 'disabled' : ''}><span class="badge">${String.fromCharCode(65 + j)}</span><span>${esc(o)}</span><span class="mark">${mark}</span></button>`;
+                });
+                if (reveal && x.explanation) h += `<div class="exp">${esc(x.explanation)}</div>`;
+                h += '</div>';
+            });
+            q.innerHTML = h;
+            q.querySelectorAll('.opt').forEach(b => b.onclick = () => { answers[+b.dataset.q] = +b.dataset.o; const y = scrollY; render(); scrollTo(0, y); });
+            $('key').onclick = () => { showKey = !showKey; const y = scrollY; render(); scrollTo(0, y); };
+            $('reset').onclick = () => { answers = new Array(qs.length).fill(null); showKey = false; render(); scrollTo({ top: 0, behavior: 'smooth' }); };
+            $('new').onclick = () => { q.classList.add('hide'); scrollTo({ top: 0, behavior: 'smooth' }); };
+        }
+    </script>
+</body>
+
+</html>
