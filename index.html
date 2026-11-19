@@ -609,11 +609,6 @@
     </div>
 
     <script>
-        // ===== PUT YOUR GEMINI API KEY HERE =====
-        const GEMINI_API_KEY = "PASTE_YOUR_KEY_HERE";
-        const MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"]; 
-        // ========================================
-
         const $ = id => document.getElementById(id);
         const OTHER = '__other';
 
@@ -707,27 +702,16 @@
         }
         function stopLoading() { clearInterval(loadTimer); }
 
-        /* ---------- Gemini call (tries models in order) ---------- */
-        async function generate(prompt, schema) {
-            let lastErr = '';
-            for (const model of MODELS) {
-                const gen = { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.6 };
-                if (model.startsWith('gemini-2.5')) gen.thinkingConfig = { thinkingBudget: 0 }; // no "thinking" = much faster
-                const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: gen })
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    try { return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'); } catch (_) { lastErr = 'Bad response format'; continue; }
-                }
-                let msg = ''; try { msg = (await resp.json()).error.message; } catch (_) { }
-                console.error('Gemini error', model, resp.status, msg);
-                lastErr = 'Error ' + resp.status + (msg ? ': ' + msg : '');
-                if (resp.status === 403 || /API key/i.test(msg)) break; // key problem, other models will not help
-            }
-            throw new Error(lastErr || 'No response from AI.');
+        /* ---------- Call our own server (api/generate.js). The key lives only on the server. ---------- */
+        async function generate(payload) {
+            const resp = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            let data = {}; try { data = await resp.json(); } catch (_) { }
+            if (!resp.ok) throw new Error(data.error || 'Server error (' + resp.status + '). Please try again.');
+            return data.questions || [];
         }
 
         /* ---------- Generate ---------- */
@@ -735,21 +719,16 @@
             $('err').classList.add('hide');
             const cls = val('cls'), subj = val('subj'), topic = val('topic');
             if (!cls || !subj || !topic) { showErr('Please choose or type a class, subject and topic.'); return; }
-            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'PASTE_YOUR_KEY_HERE') { showErr('Add your Gemini API key at the top of the script in this file.'); return; }
             const n = $('num').value, diff = state.diff, lang = state.lang;
             meta = { cls, subj, topic, lang, diff };
             const btn = $('go'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Generating…';
             showLoading();
             try {
-                const schema = { type: 'ARRAY', items: { type: 'OBJECT', properties: { q: { type: 'STRING' }, options: { type: 'ARRAY', items: { type: 'STRING' } }, answer: { type: 'INTEGER' }, explanation: { type: 'STRING' } }, required: ['q', 'options', 'answer', 'explanation'] } };
                 // Split into batches of up to 5 questions and run them in parallel (much faster)
                 const total = +n, parts = Math.ceil(total / 5), base = Math.floor(total / parts), extra = total % parts;
                 const jobs = [];
                 for (let p = 0; p < parts; p++) {
-                    const count = base + (p < extra ? 1 : 0);
-                    const split = parts > 1 ? ` This is part ${p + 1} of ${parts}: cover different sub-areas of the topic than the other parts (part ${p + 1} should focus on ${p === 0 ? 'the basic ideas and definitions' : p === parts - 1 ? 'application and problem-solving' : 'key concepts and examples'}).` : '';
-                    const prompt = `Create ${count} multiple-choice questions for ${cls}, subject ${subj}, topic "${topic}". Difficulty: ${diff}. Language: ${lang} (for Roman Urdu, write Urdu in English letters). Age-appropriate and factually correct. Exactly 4 options and exactly one correct answer; spread correct positions. Keep each explanation under 12 words.${split}`;
-                    jobs.push(generate(prompt, schema));
+                    jobs.push(generate({ cls, subj, topic, diff, lang, count: base + (p < extra ? 1 : 0), part: p + 1, parts }));
                 }
                 const results = await Promise.all(jobs);
                 const seen = new Set();
