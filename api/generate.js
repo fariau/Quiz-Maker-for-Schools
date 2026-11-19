@@ -1,6 +1,9 @@
 // Runs on Vercel's server. The key comes from the GEMINI_API_KEY environment variable,
 // so it is never in your code, on GitHub, or in the browser.
-const MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"];
+// Tried in order. If one is busy (503), we retry once and then move to the next model.
+const MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.0-flash"];
+const BUSY = [429, 500, 503, 504];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const SCHEMA = {
   type: "ARRAY",
@@ -38,28 +41,36 @@ module.exports = async (req, res) => {
   const prompt = `Create ${count} multiple-choice questions for ${cls}, subject ${subj}, topic "${topic}". Difficulty: ${diff}. Language: ${lang} (for Roman Urdu, write Urdu in English letters). Age-appropriate and factually correct. Exactly 4 options and exactly one correct answer; spread correct positions. Keep each explanation under 12 words.${split}`;
 
   let lastErr = "";
+  const started = Date.now();
+  outer:
   for (const model of MODELS) {
     const gen = { responseMimeType: "application/json", responseSchema: SCHEMA, temperature: 0.6 };
     if (model.startsWith("gemini-2.5")) gen.thinkingConfig = { thinkingBudget: 0 };
-    try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: gen })
-      });
-      if (r.ok) {
-        const data = await r.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        return res.status(200).json({ questions: JSON.parse(text) });
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      if (Date.now() - started > 24000) break outer; // stay inside Vercel's time limit
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: gen })
+        });
+        if (r.ok) {
+          const data = await r.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+          try { return res.status(200).json({ questions: JSON.parse(text) }); } catch (_) { lastErr = "Bad response format"; break; }
+        }
+        let msg = ""; try { msg = (await r.json()).error.message; } catch (_) {}
+        console.error("Gemini error", model, r.status, msg);
+        lastErr = `Error ${r.status}${msg ? ": " + msg : ""}`;
+        if (r.status === 403 || /API key/i.test(msg)) break outer; // key problem, other models will not help
+        if (!BUSY.includes(r.status)) break;                       // e.g. 404: this model is not available, go to next
+        await sleep(900);                                          // busy: wait a moment, retry once
+      } catch (e) {
+        console.error(e);
+        lastErr = "Could not reach the AI service.";
+        break;
       }
-      let msg = ""; try { msg = (await r.json()).error.message; } catch (_) {}
-      console.error("Gemini error", model, r.status, msg);
-      lastErr = `Error ${r.status}${msg ? ": " + msg : ""}`;
-      if (r.status === 403 || /API key/i.test(msg)) break;
-    } catch (e) {
-      console.error(e);
-      lastErr = "Could not reach the AI service.";
     }
   }
-  res.status(502).json({ error: lastErr || "No response from AI." });
+  res.status(502).json({ error: /503|429/.test(lastErr) ? "Google's AI is very busy right now. Please try again in a minute." : (lastErr || "No response from AI.") });
 };
